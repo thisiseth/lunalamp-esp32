@@ -1,7 +1,7 @@
 # lunalamp-esp32
 ESP32 ESP-IDF based HomeKit integrated RGBWW lamp
 
-basically it is a esp-idf homekit-sdk lightbulb example with the lightbulb hardware handling implemented
+basically it is an esp-idf homekit-sdk lightbulb example with the lightbulb hardware handling implemented
 
 there are lots of solutions for RGBW lamp colorimetry out there, but not much for RGBWW, so i wrote my own crude algorithm for finding the ratio of warm white & cold white for a given linear-space RGB value
 
@@ -15,4 +15,5 @@ since i'm not trying to really color-match anything here, i (kind of) calculate 
 the actual warm-white value i took from the Home iPhone app - third of the top row of the color temperature swatch, my warm-white led is rated at 2700K, and cold-white at 6500K
 
 build&flash&monitor: **idf.py flash monitor**
+
 for other stuff check the esp-idf documentation
