@@ -286,6 +286,8 @@ void lightbulb_update_chars()
 #define WW_VEC_B 0.1089F
 
 #define WW_VEC_LENGTH vec_length(WW_VEC_R, WW_VEC_G, WW_VEC_B)
+#define WC_VEC_LENGTH vec_length(1, 1, 1)
+
 #define CLAMP_COS(val) (val > 1.0F ? 1.0F : (val < -1.0F ? -1.0F : val))
 
 #define MIN_COLOR_VALUE (1.0F / LEDC_DUTY_MAX)
@@ -360,21 +362,24 @@ static void update_leds()
 
     //find distance to both whites
     float cos_ww = (r*WW_VEC_R + g*WW_VEC_G + b*WW_VEC_B) / (vec_length(r, g, b) * WW_VEC_LENGTH);
-    float theta_ww = acosf(CLAMP_COS(cos_ww));
+    float cos_wc = (r + g + b) / (vec_length(r, g, b) * WC_VEC_LENGTH);
 
-    float cos_wc = (r + g + b) / (vec_length(r, g, b) * vec_length(1, 1, 1));
-    float theta_wc = acosf(CLAMP_COS(cos_wc));
+    cos_ww = CLAMP_COS(cos_ww);
+    cos_wc = CLAMP_COS(cos_wc);
 
-    ESP_LOGI(TAG, "cos_ww: %5f cos_wc: %5f th_ww: %5f th_wc: %5f", cos_ww, cos_wc, theta_ww, theta_wc);
+    float sin_ww = sqrtf(1 - cos_ww*cos_ww);
+    float sin_wc = sqrtf(1 - cos_wc*cos_wc);
+
+    ESP_LOGI(TAG, "cos_ww: %5f cos_wc: %5f sin_ww: %5f sin_wc: %5f", cos_ww, cos_wc, sin_ww, sin_wc);
 
     //close enough to use only one led
-    if (theta_ww < 0.01F)
-        theta_ww = 0;
-    else if (theta_wc < 0.01F)
-        theta_wc = 0;
+    if (sin_ww < 0.01F)
+        sin_ww = 0;
+    else if (sin_wc < 0.01F)
+        sin_wc = 0;
 
-    float ww_quantity = theta_wc / (theta_ww + theta_wc); //0 angle means close as f
-    float wc_quantity = theta_ww / (theta_ww + theta_wc);
+    float wc_quantity = sin_ww / (sin_ww + (WC_VEC_LENGTH/WW_VEC_LENGTH)*sin_wc);
+    float ww_quantity = 1 - wc_quantity;
 
     float whites_r = ww_quantity*WW_VEC_R + wc_quantity;
     float whites_g = ww_quantity*WW_VEC_G + wc_quantity;
@@ -387,12 +392,13 @@ static void update_leds()
     g -= whites_g*whites_quantity;
     b -= whites_b*whites_quantity;
 
-    ESP_LOGI(TAG, "r: %5f g: %5f b: %5f ww: %5f wc: %5f", r, g, b, ww_quantity*whites_quantity, wc_quantity*whites_quantity);
-
     //apply rgb to white coeffs
+    //todo: lower coeffs when saturation is high to allow full green&blue ?
     r *= WC_CAL_R/(float)WC_CAL_W;
     g *= WC_CAL_G/(float)WC_CAL_W;
     b *= WC_CAL_B/(float)WC_CAL_W;
+
+    ESP_LOGI(TAG, "r: %5f g: %5f b: %5f ww: %5f wc: %5f", r, g, b, ww_quantity*whites_quantity, wc_quantity*whites_quantity);
 
     set_led_duty(r, g, b, ww_quantity*whites_quantity, wc_quantity*whites_quantity);
 }
