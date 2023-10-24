@@ -43,10 +43,10 @@
 
 static const char *TAG = "lightbulb";
 
-#define NVS_TURN_ON "on"
-#define NVS_HUE "hue"
-#define NVS_SATURATION "saturation"
-#define NVS_BRIGHTNESS "brightness"
+#define LUNA_NVS_TURN_ON "on"
+#define LUNA_NVS_HUE "hue"
+#define LUNA_NVS_SATURATION "saturation"
+#define LUNA_NVS_BRIGHTNESS "brightness"
 
 static nvs_handle_t light_nvs_handle;
 
@@ -56,20 +56,23 @@ static void nvs_set_light_value(const char *key, uint32_t value)
         nvs_commit(light_nvs_handle);
 }
 
-#define LEDC_TIMER              LEDC_TIMER_0
-#define LEDC_MODE               LEDC_LOW_SPEED_MODE
-#define LEDC_CHANNEL            LEDC_CHANNEL_0
-#define LEDC_DUTY_RES           LEDC_TIMER_11_BIT
-#define LEDC_FREQ 39060
+#define LUNA_LEDC_TIMER              LEDC_TIMER_0
+#define LUNA_LEDC_MODE               LEDC_LOW_SPEED_MODE
+#define LUNA_LEDC_CHANNEL            LEDC_CHANNEL_0
+#define LUNA_LEDC_DUTY_RES           LEDC_TIMER_11_BIT
+#define LUNA_LEDC_FREQ 39060
 
-#define LEDC_CHANNEL_R LEDC_CHANNEL_0
-#define LEDC_CHANNEL_G LEDC_CHANNEL_1
-#define LEDC_CHANNEL_B LEDC_CHANNEL_2
-#define LEDC_CHANNEL_WW LEDC_CHANNEL_3
-#define LEDC_CHANNEL_WC LEDC_CHANNEL_4
+#define LUNA_LEDC_CHANNEL_R LEDC_CHANNEL_0
+#define LUNA_LEDC_CHANNEL_G LEDC_CHANNEL_1
+#define LUNA_LEDC_CHANNEL_B LEDC_CHANNEL_2
+#define LUNA_LEDC_CHANNEL_WW LEDC_CHANNEL_3
+#define LUNA_LEDC_CHANNEL_WC LEDC_CHANNEL_4
 
-#define LEDC_DUTY_MAX (1 << LEDC_DUTY_RES)
-#define LEDC_DUTY_MIN (LEDC_DUTY_MAX / 512)
+#define LUNA_LEDC_DUTY_MAX (1 << LUNA_LEDC_DUTY_RES)
+#define LUNA_LEDC_DUTY_MIN (LUNA_LEDC_DUTY_MAX / 512)
+
+#define LUNA_LEDC_USE_FADE
+#define LUNA_LEDC_FADE_TIME_MS 500
 
 static bool current_on;
 static float current_hue;
@@ -102,16 +105,16 @@ void lightbulb_init(lightbulb_init_values* values)
 
     uint32_t nvs_value;
 
-    if (nvs_get_u32(light_nvs_handle, NVS_TURN_ON, &nvs_value) == ESP_OK)
+    if (nvs_get_u32(light_nvs_handle, LUNA_NVS_TURN_ON, &nvs_value) == ESP_OK)
         values->turn_on = !!nvs_value;
 
-    if (nvs_get_u32(light_nvs_handle, NVS_HUE, &nvs_value) == ESP_OK)
+    if (nvs_get_u32(light_nvs_handle, LUNA_NVS_HUE, &nvs_value) == ESP_OK)
         values->hue = nvs_value/100000.0F;
 
-    if (nvs_get_u32(light_nvs_handle, NVS_SATURATION, &nvs_value) == ESP_OK)
+    if (nvs_get_u32(light_nvs_handle, LUNA_NVS_SATURATION, &nvs_value) == ESP_OK)
         values->saturation = nvs_value/100000.0F;
 
-    if (nvs_get_u32(light_nvs_handle, NVS_BRIGHTNESS, &nvs_value) == ESP_OK)
+    if (nvs_get_u32(light_nvs_handle, LUNA_NVS_BRIGHTNESS, &nvs_value) == ESP_OK)
         values->brightness = nvs_value;
 
     if (values->hue > 360.0F)
@@ -134,28 +137,32 @@ void lightbulb_init(lightbulb_init_values* values)
     current_saturation = values->saturation;
     current_brightness = values->brightness;
 
-    gpio_set_drive_capability(LEDC_CHANNEL_R, GPIO_DRIVE_CAP_3);
-    gpio_set_drive_capability(LEDC_CHANNEL_G, GPIO_DRIVE_CAP_3);
-    gpio_set_drive_capability(LEDC_CHANNEL_B, GPIO_DRIVE_CAP_3);
-    gpio_set_drive_capability(LEDC_CHANNEL_WW, GPIO_DRIVE_CAP_3);
-    gpio_set_drive_capability(LEDC_CHANNEL_WC, GPIO_DRIVE_CAP_3);
+    gpio_set_drive_capability(LUNA_LEDC_CHANNEL_R, GPIO_DRIVE_CAP_3);
+    gpio_set_drive_capability(LUNA_LEDC_CHANNEL_G, GPIO_DRIVE_CAP_3);
+    gpio_set_drive_capability(LUNA_LEDC_CHANNEL_B, GPIO_DRIVE_CAP_3);
+    gpio_set_drive_capability(LUNA_LEDC_CHANNEL_WW, GPIO_DRIVE_CAP_3);
+    gpio_set_drive_capability(LUNA_LEDC_CHANNEL_WC, GPIO_DRIVE_CAP_3);
     
     // Prepare and then apply the LEDC PWM timer configuration
     ledc_timer_config_t ledc_timer = {
-        .speed_mode       = LEDC_MODE,
-        .timer_num        = LEDC_TIMER,
-        .duty_resolution  = LEDC_DUTY_RES,
-        .freq_hz          = LEDC_FREQ,  // Set output frequency at 5 kHz
+        .speed_mode       = LUNA_LEDC_MODE,
+        .timer_num        = LUNA_LEDC_TIMER,
+        .duty_resolution  = LUNA_LEDC_DUTY_RES,
+        .freq_hz          = LUNA_LEDC_FREQ,  // Set output frequency at 5 kHz
         .clk_cfg          = LEDC_AUTO_CLK
     };
     ESP_ERROR_CHECK(ledc_timer_config(&ledc_timer));
 
-    ESP_LOGI(TAG, "pwm timer freq: %lu", ledc_get_freq(LEDC_MODE, LEDC_TIMER));
+#ifdef LUNA_LEDC_USE_FADE
+    ESP_ERROR_CHECK(ledc_fade_func_install(0));
+#endif
+
+    ESP_LOGI(TAG, "pwm timer freq: %lu", ledc_get_freq(LUNA_LEDC_MODE, LUNA_LEDC_TIMER));
 
     ledc_channel_config_t ledc_channel_r = {
-        .speed_mode     = LEDC_MODE,
-        .channel        = LEDC_CHANNEL_R,
-        .timer_sel      = LEDC_TIMER,
+        .speed_mode     = LUNA_LEDC_MODE,
+        .channel        = LUNA_LEDC_CHANNEL_R,
+        .timer_sel      = LUNA_LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = PIN_LED_R,
         .duty           = 0,
@@ -164,9 +171,9 @@ void lightbulb_init(lightbulb_init_values* values)
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_r));
     
     ledc_channel_config_t ledc_channel_g = {
-        .speed_mode     = LEDC_MODE,
-        .channel        = LEDC_CHANNEL_G,
-        .timer_sel      = LEDC_TIMER,
+        .speed_mode     = LUNA_LEDC_MODE,
+        .channel        = LUNA_LEDC_CHANNEL_G,
+        .timer_sel      = LUNA_LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = PIN_LED_G,
         .duty           = 0,
@@ -175,9 +182,9 @@ void lightbulb_init(lightbulb_init_values* values)
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_g));
     
     ledc_channel_config_t ledc_channel_b = {
-        .speed_mode     = LEDC_MODE,
-        .channel        = LEDC_CHANNEL_B,
-        .timer_sel      = LEDC_TIMER,
+        .speed_mode     = LUNA_LEDC_MODE,
+        .channel        = LUNA_LEDC_CHANNEL_B,
+        .timer_sel      = LUNA_LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = PIN_LED_B,
         .duty           = 0,
@@ -186,9 +193,9 @@ void lightbulb_init(lightbulb_init_values* values)
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_b));
     
     ledc_channel_config_t ledc_channel_ww = {
-        .speed_mode     = LEDC_MODE,
-        .channel        = LEDC_CHANNEL_WW,
-        .timer_sel      = LEDC_TIMER,
+        .speed_mode     = LUNA_LEDC_MODE,
+        .channel        = LUNA_LEDC_CHANNEL_WW,
+        .timer_sel      = LUNA_LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = PIN_LED_WW,
         .duty           = 0,
@@ -197,9 +204,9 @@ void lightbulb_init(lightbulb_init_values* values)
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_ww));
     
     ledc_channel_config_t ledc_channel_wc = {
-        .speed_mode     = LEDC_MODE,
-        .channel        = LEDC_CHANNEL_WC,
-        .timer_sel      = LEDC_TIMER,
+        .speed_mode     = LUNA_LEDC_MODE,
+        .channel        = LUNA_LEDC_CHANNEL_WC,
+        .timer_sel      = LUNA_LEDC_TIMER,
         .intr_type      = LEDC_INTR_DISABLE,
         .gpio_num       = PIN_LED_WC,
         .duty           = 0, 
@@ -269,10 +276,10 @@ void lightbulb_update_chars()
 {
     update_leds();
 
-    nvs_set_light_value(NVS_BRIGHTNESS, current_brightness);
-    nvs_set_light_value(NVS_HUE, current_hue*100000.0F);
-    nvs_set_light_value(NVS_SATURATION, current_saturation*100000.0F);
-    nvs_set_light_value(NVS_TURN_ON, !!current_on);
+    nvs_set_light_value(LUNA_NVS_BRIGHTNESS, current_brightness);
+    nvs_set_light_value(LUNA_NVS_HUE, current_hue*100000.0F);
+    nvs_set_light_value(LUNA_NVS_SATURATION, current_saturation*100000.0F);
+    nvs_set_light_value(LUNA_NVS_TURN_ON, !!current_on);
 }
 
 //'gamma' correction :|
@@ -290,7 +297,7 @@ void lightbulb_update_chars()
 
 #define CLAMP_COS(val) (val > 1.0F ? 1.0F : (val < -1.0F ? -1.0F : val))
 
-#define MIN_COLOR_VALUE (1.0F / LEDC_DUTY_MAX)
+#define MIN_COLOR_VALUE (1.0F / LUNA_LEDC_DUTY_MAX)
 
 static void update_leds() 
 {
@@ -403,25 +410,45 @@ static void update_leds()
     set_led_duty(r, g, b, ww_quantity*whites_quantity, wc_quantity*whites_quantity);
 }
 
-#define CLAMP_DUTY(x) x < LEDC_DUTY_MIN ? (x > 0.0F ? LEDC_DUTY_MIN : 0.0F) : (x > LEDC_DUTY_MAX ? LEDC_DUTY_MAX : x)
+#define CLAMP_DUTY(x) x < LUNA_LEDC_DUTY_MIN ? (x > 0.0F ? LUNA_LEDC_DUTY_MIN : 0.0F) : (x > LUNA_LEDC_DUTY_MAX ? LUNA_LEDC_DUTY_MAX : x)
 
 static void set_led_duty(float r, float g, float b, float ww, float wc)
 {
-    uint32_t duty_r = CLAMP_DUTY((int)(r*LEDC_DUTY_MAX));
-    uint32_t duty_g = CLAMP_DUTY((int)(g*LEDC_DUTY_MAX));
-    uint32_t duty_b = CLAMP_DUTY((int)(b*LEDC_DUTY_MAX));
-    uint32_t duty_ww = CLAMP_DUTY((int)(ww*LEDC_DUTY_MAX));
-    uint32_t duty_wc = CLAMP_DUTY((int)(wc*LEDC_DUTY_MAX));
+    uint32_t duty_r = CLAMP_DUTY((int)(r*LUNA_LEDC_DUTY_MAX));
+    uint32_t duty_g = CLAMP_DUTY((int)(g*LUNA_LEDC_DUTY_MAX));
+    uint32_t duty_b = CLAMP_DUTY((int)(b*LUNA_LEDC_DUTY_MAX));
+    uint32_t duty_ww = CLAMP_DUTY((int)(ww*LUNA_LEDC_DUTY_MAX));
+    uint32_t duty_wc = CLAMP_DUTY((int)(wc*LUNA_LEDC_DUTY_MAX));
 
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_R, duty_r);
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_G, duty_g);
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_B, duty_b);
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_WW, duty_ww);
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_WC, duty_wc);
+#ifndef LUNA_LEDC_USE_FADE
+    ledc_set_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_R, duty_r);
+    ledc_set_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_G, duty_g);
+    ledc_set_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_B, duty_b);
+    ledc_set_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WW, duty_ww);
+    ledc_set_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WC, duty_wc);
 
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_R);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_G);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_B);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_WW);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, LEDC_CHANNEL_WC);
+    ledc_update_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_R);
+    ledc_update_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_G);
+    ledc_update_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_B);
+    ledc_update_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WW);
+    ledc_update_duty(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WC);
+#else
+    ledc_fade_stop(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_R);
+    ledc_fade_stop(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_G);
+    ledc_fade_stop(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_B);
+    ledc_fade_stop(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WW);
+    ledc_fade_stop(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WC);
+
+    ledc_set_fade_with_time(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_R, duty_r, LUNA_LEDC_FADE_TIME_MS);
+    ledc_set_fade_with_time(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_G, duty_g, LUNA_LEDC_FADE_TIME_MS);
+    ledc_set_fade_with_time(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_B, duty_b, LUNA_LEDC_FADE_TIME_MS);
+    ledc_set_fade_with_time(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WW, duty_ww, LUNA_LEDC_FADE_TIME_MS);
+    ledc_set_fade_with_time(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WC, duty_wc, LUNA_LEDC_FADE_TIME_MS);
+
+    ledc_fade_start(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_R, LEDC_FADE_NO_WAIT);
+    ledc_fade_start(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_G, LEDC_FADE_NO_WAIT);
+    ledc_fade_start(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_B, LEDC_FADE_NO_WAIT);
+    ledc_fade_start(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WW, LEDC_FADE_NO_WAIT);
+    ledc_fade_start(LUNA_LEDC_MODE, LUNA_LEDC_CHANNEL_WC, LEDC_FADE_NO_WAIT);
+#endif
 }
