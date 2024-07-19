@@ -180,9 +180,9 @@ static void lightbulb_thread_entry(void *arg)
      * the mandatory services internally
      */
     hap_acc_cfg_t cfg = {
-        .name = "Lunalamp",
+        .name = "Crystal Ball",
         .manufacturer = "eth",
-        .model = "Lunalamp",
+        .model = "Crystal Ball",
         .serial_num = "abcdefg",
         .fw_rev = "0.9.0",
         .hw_rev = "1.0",
@@ -213,7 +213,7 @@ static void lightbulb_thread_entry(void *arg)
     }
 
     /* Add the optional characteristic to the Light Bulb Service */
-    int ret = hap_serv_add_char(service, hap_char_name_create("My Light"));
+    int ret = hap_serv_add_char(service, hap_char_name_create("Crystal Ball"));
     ret |= hap_serv_add_char(service, hap_char_brightness_create(init_values.brightness));
     ret |= hap_serv_add_char(service, hap_char_hue_create(init_values.hue));
     ret |= hap_serv_add_char(service, hap_char_saturation_create(init_values.saturation));

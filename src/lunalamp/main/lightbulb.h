@@ -28,15 +28,15 @@
 #ifndef _LIGHTBULB_H_
 #define _LIGHTBULB_H_
 
-#define PIN_LED_R 37
-#define PIN_LED_G 2
-#define PIN_LED_B 35
-#define PIN_LED_WW 36
-#define PIN_LED_WC 38
+#define PIN_LED_R 9
+#define PIN_LED_G 8
+#define PIN_LED_B 7
+#define PIN_LED_WW 10
+#define PIN_LED_WC 11
 
-#define RESET_HUE 30.0
-#define RESET_SATURATION 44.0
-#define RESET_BRIGHTNESS 30
+#define RESET_HUE 293.0
+#define RESET_SATURATION 88.0
+#define RESET_BRIGHTNESS 60
 #define RESET_TURN_ON true
 
 #define WW_CAL_R 330
