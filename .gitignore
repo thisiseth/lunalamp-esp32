@@ -4,7 +4,6 @@
 
 
 # Example project files
-src/lunalamp/sdkconfig
 src/lunalamp/sdkconfig.old
 src/lunalamp/build
 src/lunalamp/managed_components/*

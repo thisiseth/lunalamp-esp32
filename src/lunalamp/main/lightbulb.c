@@ -59,8 +59,8 @@ static void nvs_set_light_value(const char *key, uint32_t value)
 #define LUNA_LEDC_TIMER              LEDC_TIMER_0
 #define LUNA_LEDC_MODE               LEDC_LOW_SPEED_MODE
 #define LUNA_LEDC_CHANNEL            LEDC_CHANNEL_0
-#define LUNA_LEDC_DUTY_RES           LEDC_TIMER_11_BIT
-#define LUNA_LEDC_FREQ 39060
+#define LUNA_LEDC_DUTY_RES           LEDC_TIMER_13_BIT
+#define LUNA_LEDC_FREQ 9765
 
 #define LUNA_LEDC_CHANNEL_R LEDC_CHANNEL_0
 #define LUNA_LEDC_CHANNEL_G LEDC_CHANNEL_1
@@ -69,7 +69,7 @@ static void nvs_set_light_value(const char *key, uint32_t value)
 #define LUNA_LEDC_CHANNEL_WC LEDC_CHANNEL_4
 
 #define LUNA_LEDC_DUTY_MAX (1 << LUNA_LEDC_DUTY_RES)
-#define LUNA_LEDC_DUTY_MIN (LUNA_LEDC_DUTY_MAX / 512)
+#define LUNA_LEDC_DUTY_MIN (LUNA_LEDC_DUTY_MAX / 1024)
 
 #define LUNA_LEDC_USE_FADE
 #define LUNA_LEDC_FADE_TIME_MS 500
